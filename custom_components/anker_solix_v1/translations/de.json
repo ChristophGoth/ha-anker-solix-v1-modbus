@@ -1,0 +1,152 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Anker SOLIX V1 Smart EV Charger",
+        "description": "Aktiviere Modbus TCP in der Anker-App unter Einstellungen → Integrationen, bevor du die Wallbox hinzufügst.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "device_id": "Modbus-Geräte-ID",
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Wallbox nicht erreichbar. Prüfe die IP-Adresse und ob Modbus TCP in der Anker-App aktiviert ist."
+    },
+    "abort": {
+      "already_configured": "Diese Wallbox ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "data": {
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "charging_status": {
+        "name": "Ladestatus",
+        "state": {
+          "idle": "Bereit",
+          "preparing": "Vorbereitung",
+          "charging": "Lädt",
+          "charger_paused": "Von Wallbox pausiert",
+          "vehicle_paused": "Von Fahrzeug pausiert",
+          "charging_completed": "Ladevorgang abgeschlossen",
+          "reserving": "Reserviert",
+          "disabled": "Deaktiviert",
+          "error": "Fehler"
+        }
+      },
+      "cp_signal_status": {
+        "name": "CP-Signalstatus",
+        "state": {
+          "a_12v": "A (12 V, nicht verbunden)",
+          "b1_9v": "B1 (9 V, verbunden)",
+          "b2_9v": "B2 (9 V, bereit)",
+          "c1_6v": "C1 (6 V, lädt)",
+          "c2_6v": "C2 (6 V, lädt)",
+          "d1_3v": "D1 (3 V)",
+          "d2_3v": "D2 (3 V)",
+          "e_0v": "E (0 V)",
+          "f_minus_12v": "F (-12 V)",
+          "error": "Fehler"
+        }
+      },
+      "phase_mode": {
+        "name": "Phasenmodus",
+        "state": {
+          "single_phase": "Einphasig",
+          "three_phase": "Dreiphasig"
+        }
+      },
+      "charging_mode": {
+        "name": "Lademodus",
+        "state": {
+          "solar_and_grid": "Solar und Netz",
+          "only_solar": "Nur Solar"
+        }
+      },
+      "ocpp_connection_status": {
+        "name": "OCPP-Verbindung",
+        "state": {
+          "not_connected": "Nicht verbunden",
+          "connecting": "Verbindet",
+          "connected": "Verbunden"
+        }
+      },
+      "mqtt_connection_status": {
+        "name": "MQTT-Verbindung",
+        "state": {
+          "not_connected": "Nicht verbunden",
+          "connecting": "Verbindet",
+          "connected": "Verbunden"
+        }
+      },
+      "active_power_total": { "name": "Ladeleistung" },
+      "active_power_l1": { "name": "Wirkleistung L1" },
+      "active_power_l2": { "name": "Wirkleistung L2" },
+      "active_power_l3": { "name": "Wirkleistung L3" },
+      "reactive_power_l1": { "name": "Blindleistung L1" },
+      "reactive_power_l2": { "name": "Blindleistung L2" },
+      "reactive_power_l3": { "name": "Blindleistung L3" },
+      "apparent_power_l1": { "name": "Scheinleistung L1" },
+      "apparent_power_l2": { "name": "Scheinleistung L2" },
+      "apparent_power_l3": { "name": "Scheinleistung L3" },
+      "voltage_l1_n": { "name": "Spannung L1-N" },
+      "voltage_l2_n": { "name": "Spannung L2-N" },
+      "voltage_l3_n": { "name": "Spannung L3-N" },
+      "voltage_l1_l2": { "name": "Spannung L1-L2" },
+      "voltage_l2_l3": { "name": "Spannung L2-L3" },
+      "voltage_l3_l1": { "name": "Spannung L3-L1" },
+      "current_l1": { "name": "Strom L1" },
+      "current_l2": { "name": "Strom L2" },
+      "current_l3": { "name": "Strom L3" },
+      "session_energy": { "name": "Energie aktuelle Ladung" },
+      "session_duration": { "name": "Dauer aktuelle Ladung" },
+      "relay_1_temperature": { "name": "Temperatur Relais 1" },
+      "relay_2_temperature": { "name": "Temperatur Relais 2" },
+      "cp_voltage": { "name": "CP-Spannung" },
+      "led_brightness": { "name": "LED-Helligkeit" },
+      "rated_power": { "name": "Nennleistung" },
+      "max_output_current": { "name": "Maximaler Ausgangsstrom" }
+    },
+    "binary_sensor": {
+      "charging": { "name": "Lädt" },
+      "vehicle_connected": { "name": "Fahrzeug angeschlossen" },
+      "alarm_active": { "name": "Alarm" },
+      "pwm_enabled": { "name": "PWM aktiv" },
+      "load_balancing_enabled": { "name": "Lastmanagement" },
+      "solar_balancing_enabled": { "name": "Solarüberschussladen" }
+    },
+    "number": {
+      "max_current_setting": { "name": "Ladestrom-Begrenzung" },
+      "timeout_setting": { "name": "Modbus-Timeout" }
+    },
+    "switch": {
+      "charging": { "name": "Laden" },
+      "boost_mode": { "name": "Boost-Modus" }
+    },
+    "select": {
+      "phase_setting": {
+        "name": "Phasenwahl",
+        "state": {
+          "automatic": "Automatisch",
+          "fixed_single_phase": "Fest einphasig",
+          "fixed_three_phase": "Fest dreiphasig"
+        }
+      }
+    },
+    "button": {
+      "start_charging": { "name": "Laden starten" },
+      "stop_charging": { "name": "Laden stoppen" }
+    }
+  }
+}

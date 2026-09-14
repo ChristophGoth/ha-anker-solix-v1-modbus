@@ -1,0 +1,6 @@
+{
+  "name": "Anker SOLIX V1 Smart EV Charger",
+  "content_in_root": false,
+  "render_readme": true,
+  "homeassistant": "2024.12.0"
+}
