@@ -14,10 +14,13 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     PERCENTAGE,
+    EntityCategory,
+    UnitOfApparentPower,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfPower,
+    UnitOfReactivePower,
     UnitOfTemperature,
     UnitOfTime,
 )
@@ -102,6 +105,7 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
         key="cp_signal_status",
         device_class=SensorDeviceClass.ENUM,
         options=sorted(set(CP_SIGNAL_STATUS.values())),
+        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=_enum_value("cp_signal_status", CP_SIGNAL_STATUS),
     ),
@@ -121,6 +125,7 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
         key="ocpp_connection_status",
         device_class=SensorDeviceClass.ENUM,
         options=sorted(set(CONNECTION_STATUS.values())),
+        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=_enum_value("ocpp_connection_status", CONNECTION_STATUS),
     ),
@@ -128,6 +133,7 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
         key="mqtt_connection_status",
         device_class=SensorDeviceClass.ENUM,
         options=sorted(set(CONNECTION_STATUS.values())),
+        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=_enum_value("mqtt_connection_status", CONNECTION_STATUS),
     ),
@@ -155,7 +161,7 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
             key=f"reactive_power_l{phase}",
             device_class=SensorDeviceClass.REACTIVE_POWER,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement="var",
+            native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
             entity_registry_enabled_default=False,
             value_fn=_plain(f"reactive_power_l{phase}"),
         )
@@ -166,7 +172,7 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
             key=f"apparent_power_l{phase}",
             device_class=SensorDeviceClass.APPARENT_POWER,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement="VA",
+            native_unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
             entity_registry_enabled_default=False,
             value_fn=_plain(f"apparent_power_l{phase}"),
         )
@@ -231,6 +237,7 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
             device_class=SensorDeviceClass.TEMPERATURE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            entity_category=EntityCategory.DIAGNOSTIC,
             entity_registry_enabled_default=False,
             value_fn=_temperature(f"relay_{index}_temperature"),
         )
@@ -241,6 +248,7 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=_plain("cp_voltage"),
     ),
@@ -248,20 +256,24 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
         key="led_brightness",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=_plain("led_brightness"),
     ),
+    # Nameplate ratings, not measurements: they carry a unit for display but no
+    # device_class, because a device_class would oblige a state_class and make
+    # Home Assistant record statistics for a value that never changes.
     AnkerSensorDescription(
         key="rated_power",
-        device_class=SensorDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.WATT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=_plain("rated_power"),
     ),
     AnkerSensorDescription(
         key="max_output_current",
-        device_class=SensorDeviceClass.CURRENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=_plain("max_output_current"),
     ),
