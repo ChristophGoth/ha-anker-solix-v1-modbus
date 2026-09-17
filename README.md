@@ -8,6 +8,8 @@ Bindet den **Anker SOLIX V1 Smart EV Charger** per Modbus TCP in Home Assistant
 ein — vollständig lokal, ohne Cloud und ohne Anker-Konto. Die Wallbox wird als
 Gerät mit Messwerten und Steuerelementen angelegt.
 
+<img src="image.webp" alt="Anker SOLIX V1 Smart EV Charger" width="280">
+
 > **Status:** funktionsfähig, aber jung. Verifiziert gegen ein Gerät der Variante
 > **A5191** (einphasig, 32 A, Firmware 1.0.6.1). Rückmeldungen zu anderen
 > Varianten sind willkommen — siehe [Mitwirken](#mitwirken).
