@@ -16,6 +16,10 @@ variables:
 
 default:
   interruptible: true
+  # Every runner on this instance sets run_untagged: false, so a job without a
+  # tag is never picked up and the pipeline stalls until it is cancelled.
+  tags:
+    - docker
 
 # Syntax, JSON validity and the one thing a release must never get wrong: the
 # manifest version has to match the tag it is released under.
