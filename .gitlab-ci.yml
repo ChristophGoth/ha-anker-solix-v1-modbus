@@ -1,0 +1,124 @@
+# GitLab is the source of truth; GitHub receives published releases so HACS can
+# find them. A tag pipeline mirrors the code, then creates a matching GitHub
+# release with the integration zipped the way HACS expects.
+#
+# Required CI/CD variable:
+#   GITHUB_PAT  Personal access token with `repo` scope, masked and protected.
+#               Protect the variable and the tags, or tag pipelines cannot read it.
+
+stages:
+  - validate
+  - release
+
+variables:
+  GITHUB_REPO: ChristophGoth/ha-anker-solix-v1-modbus
+  INTEGRATION_PATH: custom_components/anker_solix_v1
+
+default:
+  interruptible: true
+
+# Syntax, JSON validity and the one thing a release must never get wrong: the
+# manifest version has to match the tag it is released under.
+validate:
+  stage: validate
+  image: python:3.13-alpine
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - python -m compileall -q "$INTEGRATION_PATH"
+    - python ci/validate.py
+
+# Push the tagged commit to GitHub and publish a release there. Runs only for
+# tags, so ordinary branch pushes never reach GitHub.
+release-to-github:
+  stage: release
+  image: alpine:3.20
+  rules:
+    - if: $CI_COMMIT_TAG
+  before_script:
+    - apk add --no-cache git curl jq zip
+    - test -n "$GITHUB_PAT" || { echo "GITHUB_PAT is not set for this pipeline"; exit 1; }
+  script:
+    # Mirror the tagged commit. The token goes into a credential file rather
+    # than the remote URL, where an error message could echo it back.
+    - |
+      git config --global credential.helper store
+      printf 'https://x-access-token:%s@github.com\n' "$GITHUB_PAT" > ~/.git-credentials
+      chmod 600 ~/.git-credentials
+      git remote add github "https://github.com/${GITHUB_REPO}.git" 2>/dev/null || \
+        git remote set-url github "https://github.com/${GITHUB_REPO}.git"
+      git push github "HEAD:refs/heads/${CI_DEFAULT_BRANCH}"
+      git push github "refs/tags/${CI_COMMIT_TAG}"
+
+    # HACS unpacks this asset into custom_components/, so the zip has to contain
+    # the integration directory itself, not its contents.
+    - |
+      DOMAIN=$(basename "$INTEGRATION_PATH")
+      (cd "$(dirname "$INTEGRATION_PATH")" && zip -r -q "$CI_PROJECT_DIR/${DOMAIN}.zip" "$DOMAIN" -x '*__pycache__*' '*.pyc')
+      echo "packaged ${DOMAIN}.zip"
+
+    # Release notes: this version's section from CHANGELOG.md, or a pointer to
+    # the file when the tag has no entry yet.
+    - |
+      VERSION="${CI_COMMIT_TAG#v}"
+      NOTES=$(python3 ci/release_notes.py "$VERSION" 2>/dev/null || true)
+      if [ -z "$NOTES" ]; then
+        NOTES="Siehe [CHANGELOG.md](https://github.com/${GITHUB_REPO}/blob/${CI_COMMIT_TAG}/CHANGELOG.md)."
+      fi
+      jq -n --arg tag "$CI_COMMIT_TAG" --arg name "$CI_COMMIT_TAG" --arg body "$NOTES" \
+        '{tag_name: $tag, name: $name, body: $body, draft: false, prerelease: false}' > release.json
+
+    # Create the release, or reuse it if this tag was already published.
+    - |
+      CODE=$(curl -sS -o response.json -w '%{http_code}' \
+        -X POST "https://api.github.com/repos/${GITHUB_REPO}/releases" \
+        -H "Authorization: Bearer ${GITHUB_PAT}" \
+        -H "Accept: application/vnd.github+json" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        -d @release.json)
+      if [ "$CODE" = "201" ]; then
+        echo "release ${CI_COMMIT_TAG} created"
+      elif [ "$CODE" = "422" ]; then
+        echo "release ${CI_COMMIT_TAG} already exists, reusing it"
+        curl -sS -o response.json \
+          "https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${CI_COMMIT_TAG}" \
+          -H "Authorization: Bearer ${GITHUB_PAT}" \
+          -H "Accept: application/vnd.github+json"
+      else
+        echo "GitHub refused the release (HTTP $CODE):"
+        jq -r '.message // .' response.json
+        exit 1
+      fi
+      RELEASE_ID=$(jq -r '.id' response.json)
+      test "$RELEASE_ID" != "null" || { echo "no release id in response"; exit 1; }
+      echo "RELEASE_ID=$RELEASE_ID" > release.env
+
+    # Replace the asset when re-releasing a tag, then upload.
+    - |
+      . ./release.env
+      DOMAIN=$(basename "$INTEGRATION_PATH")
+      EXISTING=$(curl -sS \
+        "https://api.github.com/repos/${GITHUB_REPO}/releases/${RELEASE_ID}/assets" \
+        -H "Authorization: Bearer ${GITHUB_PAT}" \
+        -H "Accept: application/vnd.github+json" \
+        | jq -r --arg n "${DOMAIN}.zip" '.[] | select(.name == $n) | .id')
+      if [ -n "$EXISTING" ]; then
+        curl -sS -X DELETE \
+          "https://api.github.com/repos/${GITHUB_REPO}/releases/assets/${EXISTING}" \
+          -H "Authorization: Bearer ${GITHUB_PAT}"
+      fi
+      CODE=$(curl -sS -o upload.json -w '%{http_code}' \
+        -X POST "https://uploads.github.com/repos/${GITHUB_REPO}/releases/${RELEASE_ID}/assets?name=${DOMAIN}.zip" \
+        -H "Authorization: Bearer ${GITHUB_PAT}" \
+        -H "Content-Type: application/zip" \
+        --data-binary "@${DOMAIN}.zip")
+      test "$CODE" = "201" || { echo "asset upload failed (HTTP $CODE):"; jq -r '.message // .' upload.json; exit 1; }
+      echo "published https://github.com/${GITHUB_REPO}/releases/tag/${CI_COMMIT_TAG}"
+  after_script:
+    - rm -f ~/.git-credentials
+  artifacts:
+    paths:
+      - anker_solix_v1.zip
+    expire_in: 30 days

@@ -249,6 +249,34 @@ Bit-Zuordnung nachrüsten lässt, sobald die Liste verfügbar ist.
 
 Alle Versionen und ihre Änderungen stehen im [Changelog](CHANGELOG.md).
 
+## Entwicklung
+
+Die Entwicklung findet auf einer privaten GitLab-Instanz statt; GitHub trägt die
+veröffentlichten Releases, damit HACS sie findet.
+
+Ein Tag auf `main` löst die Pipeline in [`.gitlab-ci.yml`](.gitlab-ci.yml) aus:
+
+1. **validate** — Syntaxprüfung, JSON-Validierung, Abgleich der Übersetzungen
+   gegen `strings.json` und Vergleich der Manifest-Version mit dem Tag.
+2. **release-to-github** — spiegelt den Commit und den Tag nach GitHub, legt
+   dort ein Release an und hängt `anker_solix_v1.zip` als Asset an. Die
+   Release-Notes stammen aus dem passenden Abschnitt von `CHANGELOG.md`.
+
+Ein Release entsteht damit so:
+
+```sh
+# Version in custom_components/anker_solix_v1/manifest.json anheben,
+# Abschnitt in CHANGELOG.md ergaenzen, beides committen
+git tag v0.2.0
+git push origin main --follow-tags
+```
+
+Weicht die Manifest-Version vom Tag ab, bricht die Pipeline ab, bevor etwas
+veröffentlicht wird.
+
+Benötigt wird die CI/CD-Variable `GITHUB_PAT` — ein GitHub-Token mit
+`repo`-Berechtigung, das als *masked* hinterlegt sein sollte.
+
 ## Mitwirken
 
 Besonders hilfreich sind Rückmeldungen zu **dreiphasigen Geräten** und anderen
