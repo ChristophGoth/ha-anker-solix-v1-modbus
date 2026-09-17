@@ -234,6 +234,10 @@ Das Protokolldokument selbst ist urheberrechtlich geschützt und darf nicht
 weitergegeben werden; es liegt diesem Repository deshalb nicht bei. Anker stellt
 es auf Anfrage bereit.
 
+Wie sich Registerwerte gegen echte Hardware nachprüfen lassen — und woran man
+einen Sentinel von einem Messwert unterscheidet — steht in
+[docs/VERIFIZIEREN.md](docs/VERIFIZIEREN.md).
+
 ### Offene Punkte
 
 | Punkt | Stand |
@@ -285,6 +289,9 @@ A5191.
 
 Bei einem Fehlerbericht helfen: Modellnummer, Firmware-Version, Auszug aus dem
 Home-Assistant-Log und, wenn möglich, die Rohwerte der betroffenen Register.
+
+Für das Auslesen der Rohwerte gibt es eine Anleitung in
+[docs/VERIFIZIEREN.md](docs/VERIFIZIEREN.md).
 
 ## Haftungsausschluss
 
