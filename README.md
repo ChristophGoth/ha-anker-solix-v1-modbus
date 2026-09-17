@@ -252,49 +252,6 @@ added once the list becomes available.
 
 Every version and its changes are listed in the [changelog](CHANGELOG.md).
 
-## Development
-
-Development happens on a private GitLab instance; GitHub carries the published
-releases so that HACS can find them.
-
-A tag on `main` triggers the pipeline in [`.gitlab-ci.yml`](.gitlab-ci.yml):
-
-1. **validate** — syntax check, JSON validation, comparison of the translation
-   files against each other, and a check that the manifest version matches the
-   tag.
-2. **hassfest** — Home Assistant's own manifest and translation checks, run in
-   the same container the hassfest GitHub Action uses.
-3. **package** — builds `anker_solix_v1.zip` the way HACS expects it. Built
-   once, so both releases ship identical bytes.
-4. **release-gitlab** — uploads the zip to the generic package registry and
-   publishes a GitLab release linking it. The registry is used because job
-   artifacts expire and a release asset has to outlive them.
-5. **release-to-github** — mirrors the commit and the tag to GitHub, creates a
-   release there and attaches the same zip as an asset.
-
-Release notes for both releases come from the matching section of
-`CHANGELOG.md`.
-
-A release is therefore made like this:
-
-```sh
-# Raise the version in custom_components/anker_solix_v1/manifest.json,
-# add a section to CHANGELOG.md, commit both
-git tag v0.2.2
-git push origin main --follow-tags
-```
-
-If the manifest version differs from the tag, the pipeline stops before
-anything is published.
-
-The pipeline needs the CI/CD variable `GITHUB_PAT` — a GitHub token with `repo`
-scope, stored masked and protected.
-
-HACS validation runs on GitHub rather than in the pipeline, because it inspects
-the repository through the GitHub API — description, topics, issues and the
-latest release — so it only says something meaningful once a release has been
-mirrored there.
-
 ## Contributing
 
 Reports from **three-phase units** and other model variants are especially
