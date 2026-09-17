@@ -5,6 +5,14 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier festgehalten.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.2] – 2026-09-17
+
+### Behoben
+
+* `zip_release` aus `hacs.json` entfernt. HACS las Manifest und `hacs.json`
+  dadurch aus dem Release-Asset statt aus dem Repository, was die
+  HACS-Validierung nicht auflösen konnte.
+
 ## [0.2.1] – 2026-09-17
 
 ### Geändert
