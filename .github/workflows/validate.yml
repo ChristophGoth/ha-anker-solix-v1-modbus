@@ -13,7 +13,10 @@ on:
     - cron: "0 4 * * *"
   workflow_dispatch:
 
-permissions: {}
+# checkout needs read access to the repository. An empty permissions block
+# grants none, which a private repository refuses with "repository not found".
+permissions:
+  contents: read
 
 jobs:
   hacs:
