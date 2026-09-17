@@ -5,6 +5,15 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier festgehalten.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.1] – 2026-09-17
+
+### Geändert
+
+* Releases entstehen jetzt vollständig in GitLab: das HACS-Zip wird dort als
+  Release-Asset veröffentlicht und unverändert nach GitHub gespiegelt.
+* Die Prüfungen von hassfest laufen in der Pipeline mit, die HACS-Validierung
+  nach dem Spiegeln auf GitHub.
+
 ## [0.2.0] – 2026-09-17
 
 ### Hinzugefügt
