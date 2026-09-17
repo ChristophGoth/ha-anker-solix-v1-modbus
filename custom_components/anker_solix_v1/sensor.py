@@ -30,9 +30,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import AnkerSolixConfigEntry
 from .const import (
     CHARGING_MODE,
+    CHARGING_STATE_TEXT,
     CHARGING_STATUS,
-    CONNECTION_STATUS,
     CP_SIGNAL_STATUS,
+    MQTT_CONNECTION_STATUS,
+    OCPP_CONNECTION_STATUS,
     PHASE_MODE,
 )
 from .coordinator import AnkerSolixCoordinator
@@ -101,6 +103,15 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
         options=sorted(set(CHARGING_STATUS.values())),
         value_fn=_enum_value("charging_status", CHARGING_STATUS),
     ),
+    # A plain string rather than an ENUM: consumers reading Home Assistant over
+    # the REST API receive an ENUM sensor's raw option, never its translation,
+    # so this carries the display text itself. Off by default because the
+    # translated `charging_status` above is the better choice inside HA.
+    AnkerSensorDescription(
+        key="charging_state_text",
+        entity_registry_enabled_default=False,
+        value_fn=_enum_value("charging_status", CHARGING_STATE_TEXT),
+    ),
     AnkerSensorDescription(
         key="cp_signal_status",
         device_class=SensorDeviceClass.ENUM,
@@ -124,18 +135,18 @@ SENSORS: tuple[AnkerSensorDescription, ...] = (
     AnkerSensorDescription(
         key="ocpp_connection_status",
         device_class=SensorDeviceClass.ENUM,
-        options=sorted(set(CONNECTION_STATUS.values())),
+        options=sorted(set(OCPP_CONNECTION_STATUS.values())),
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        value_fn=_enum_value("ocpp_connection_status", CONNECTION_STATUS),
+        value_fn=_enum_value("ocpp_connection_status", OCPP_CONNECTION_STATUS),
     ),
     AnkerSensorDescription(
         key="mqtt_connection_status",
         device_class=SensorDeviceClass.ENUM,
-        options=sorted(set(CONNECTION_STATUS.values())),
+        options=sorted(set(MQTT_CONNECTION_STATUS.values())),
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        value_fn=_enum_value("mqtt_connection_status", CONNECTION_STATUS),
+        value_fn=_enum_value("mqtt_connection_status", MQTT_CONNECTION_STATUS),
     ),
     # Power.
     AnkerSensorDescription(

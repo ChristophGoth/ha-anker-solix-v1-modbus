@@ -75,6 +75,7 @@ Seriennummer an.
 | Entität | Einheit | Register |
 |---|---|---|
 | Ladestatus | — | 20097 |
+| Ladezustand (Klartext) | — | 20097 |
 | Ladeleistung | W | 20068 |
 | Energie aktuelle Ladung | kWh | 20084 |
 | Dauer aktuelle Ladung | s | 20082 |
@@ -132,6 +133,45 @@ jeder Ladung zurückgesetzt und ist deshalb als `TOTAL` deklariert, nicht als
 `TOTAL_INCREASING` — andernfalls würde Home Assistant jeden Reset als
 Zählerüberlauf interpretieren.
 
+## Anbindung an Drittanwendungen
+
+Werkzeuge, die Home Assistant über die REST-API auslesen — etwa
+[Leapmotor Mate](https://github.com/ProtossBlaster/leapmotor-mate) —, erhalten
+bei einem Sensor der Geräteklasse `enum` immer den Rohwert, nie die Übersetzung:
+Zustandsübersetzungen wendet allein das HA-Frontend an. *Ladestatus* liefert
+dort also `charger_paused` statt „Von Wallbox pausiert".
+
+Für diesen Fall gibt es **Ladezustand (Klartext)**. Der Sensor führt dieselbe
+Registerquelle auf vier englische Begriffe zusammen und trägt keine
+Geräteklasse, wird also unverändert ausgeliefert:
+
+| Ladestatus | Ladezustand (Klartext) |
+|---|---|
+| Lädt | `Charging` |
+| Vorbereitung, von Wallbox/Fahrzeug pausiert, abgeschlossen, reserviert | `Connected` |
+| Bereit, deaktiviert | `Idle` |
+| Fehler | `Error` |
+
+Der Sensor ist standardmäßig deaktiviert und wird in der Entitätsliste des
+Geräts eingeschaltet. Innerhalb von Home Assistant bleibt *Ladestatus* die
+bessere Wahl — er ist übersetzt und kennt alle neun Zustände einzeln.
+
+**Zuordnung in Leapmotor Mate** (*Einstellungen → Wallbox*):
+
+| Rolle | Entität |
+|---|---|
+| Ladeleistung | *Ladeleistung* (W) |
+| Energie der Ladung | *Energie aktuelle Ladung* (kWh) |
+| Status | *Ladezustand (Klartext)* |
+| Maximaler Ladestrom | *Ladestrom-Begrenzung* |
+
+Mate filtert die Auswahlliste nach Stichwörtern wie `wallbox` oder `charger`
+im Entitätsnamen. Enthält der Gerätename keines davon, erscheinen die Entitäten
+nicht von selbst: entweder unter *Einstellungen → Wallbox* eigene Suchbegriffe
+hinterlegen, den Modus *Alle anzeigen* verwenden, oder das Gerät in Home
+Assistant umbenennen. Ob geladen wird, leitet Mate übrigens aus der Leistung ab
+(> 50 W), nicht aus dem Status.
+
 ## Beispielautomation
 
 Ladestrom dem PV-Überschuss nachführen:
@@ -160,7 +200,7 @@ automation:
 
 Die Registerkarte beruht auf dem Dokument *Anker SOLIX V1 Smart EV Charger
 Modbus Protocol* V1.0.0 (30.11.2025) und wurde an einem A5191 (Firmware 1.0.6.1)
-überprüft. Drei Punkte weichen von der Dokumentation ab und sind in
+überprüft. Sieben Punkte weichen von der Dokumentation ab und sind in
 [`registers.py`](custom_components/anker_solix_v1/registers.py) festgehalten:
 
 * **Funktionscodes.** Die Dokumentation nennt keine. Tatsächlich antwortet der
@@ -170,6 +210,23 @@ Modbus Protocol* V1.0.0 (30.11.2025) und wurde an einem A5191 (Firmware 1.0.6.1)
   Nennleistung: `[0, 7400]` ergibt 7400 W, Little-Endian dagegen 484 966 400 W.
 * **Einheitenspalte.** Bei 21001, 21003 und 21005 ist sie falsch, die
   Gain-Spalte dagegen richtig. 21001 = 320 entspricht den 32 A aus der App.
+  Auch 20039 ist betroffen: Die Spalte nennt KVA, der Wert 32 ist der
+  maximale Ausgangsstrom in Ampere.
+* **Gain der Stromregister.** Bei 20059–20061 nennt die Dokumentation 100,
+  richtig ist 10. Bei 1388 W an L1 und 224,0 V liest 20059 den Wert 62:
+  6,2 A ergeben 1388,8 W und damit die gemeldete Leistung, 0,62 A nur 138,9 W.
+* **Rücklesen von 21000.** Der Ladebefehl wird nicht gespeichert: Nach einem
+  Stopp über die Integration liest 21000 dauerhaft 0, nie die geschriebene 2.
+  Der *Laden*-Switch wertet deshalb den Ladestatus aus statt das Register.
+* **Einheit der CP-Spannung.** Die Dokumentation nennt keine; es sind
+  Millivolt. Belegt über drei CP-Zustände einer Sitzung: 11779 bei A,
+  8846 bei B1 und 5826 bei C2 treffen die Sollwerte nach IEC 61851
+  (12/9/6 V) auf 0,25 V genau.
+* **Verbindungsstatus 20099 und 20100.** Die beiden Register nutzen
+  unterschiedliche Codes und werden getrennt ausgewertet: bei OCPP (20099)
+  bedeutet 1 *Verbindungsaufbau* und 2 *Verbunden*, bei MQTT (20100)
+  bedeutet 1 bereits *Verbunden*. Ein gemeinsames Mapping meldete eine
+  bestehende MQTT-Verbindung dauerhaft als „Verbindungsaufbau".
 
 Das Protokolldokument selbst ist urheberrechtlich geschützt und darf nicht
 weitergegeben werden; es liegt diesem Repository deshalb nicht bei. Anker stellt
@@ -179,14 +236,16 @@ es auf Anfrage bereit.
 
 | Punkt | Stand |
 |---|---|
-| Start/Stop über 21000 | An echter Hardware noch nicht ausgelöst |
-| Skalierung Relais-Temperaturen | Dokumentation sagt Gain 1, Messwerte legen Gain 10 nahe |
-| Einheit CP-Spannung | Als Millivolt interpretiert |
+| Relais-1-Temperatur | Liefert konstant −55,0 °C (Sentinel); Sensor auf dem A5191 offenbar nicht bestückt |
 | Alarmliste (20041–20052) | Bit-Zuordnung liegt nicht vor |
 
 Die zwölf Alarmregister werden zu einem einzelnen *Alarm*-Binärsensor
 zusammengefasst; die Rohwerte hängen als Attribute daran, sodass sich eine
 Bit-Zuordnung nachrüsten lässt, sobald die Liste verfügbar ist.
+
+## Änderungen
+
+Alle Versionen und ihre Änderungen stehen im [Changelog](CHANGELOG.md).
 
 ## Mitwirken
 

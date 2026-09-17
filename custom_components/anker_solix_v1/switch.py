@@ -34,9 +34,12 @@ async def async_setup_entry(
 class AnkerSolixChargingSwitch(AnkerSolixEntity, SwitchEntity):
     """Start and stop charging (holding register 21000).
 
-    Register 21000 is a command, not a state: it holds 1 or 2 for the last
-    command issued. The switch therefore reports the actual charging status
-    from the telemetry block instead of reading the command back.
+    Register 21000 is write-only in effect: it does not latch the command.
+    Verified after stopping a live charge through this switch — the charger
+    went to 0 W with PWM off and CP back to B1, while 21000 read 0 across
+    eight samples over 35 s, never the 2 that was written. So the switch
+    reports the actual charging status from the telemetry block; reading the
+    command back would report "off" even mid-charge.
     """
 
     _attr_device_class = SwitchDeviceClass.SWITCH

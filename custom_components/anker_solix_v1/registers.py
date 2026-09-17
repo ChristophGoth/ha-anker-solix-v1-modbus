@@ -69,13 +69,18 @@ DEVICE_INFO: tuple[Register, ...] = (
     # The document lists these three as INT32 at 20035/20037/20039 with units
     # W/W/KVA. On the test device 20035+20036 reads [0, 7400] (7400 W rated) and
     # 20039+20040 reads [0, 32] (32 A max), so the third is a current in amperes,
-    # not apparent power.
-    Register(20035, "rated_power", words=2, unit="W"),
-    Register(20037, "min_output_current", words=2, unit="A"),
+    # not apparent power. All three are signed per the document; in practice the
+    # sign never engages, since bit 31 would mean values above 2.1 billion.
+    Register(20035, "rated_power", words=2, signed=True, unit="W"),
+    # Reads 0 on the A5191 rather than the 6 A the document calls the system
+    # minimum, so it is not surfaced as an entity; MIN_CHARGING_CURRENT in
+    # const.py carries that limit instead.
+    Register(20037, "min_output_current", words=2, signed=True, unit="A"),
     Register(
         20039,
         "max_output_current",
         words=2,
+        signed=True,
         unit="A",
         note="Document says KVA; observed value is the 32 A current rating.",
     ),
@@ -102,10 +107,15 @@ VOLTAGE_REGISTERS: tuple[Register, ...] = (
     Register(20058, "voltage_l3_l1", gain=10, unit="V"),
 )
 
+# The document gives gain 100 for these, but the observed value contradicts it:
+# while charging at 1388 W on L1 at 224.0 V, register 20059 reads 62. Gain 10
+# yields 6.2 A (6.2 x 224.0 = 1388.8 W, within 0.1 % of the reported power);
+# gain 100 would give 0.62 A and 138.9 W, off by a factor of ten. L2/L3 share
+# the block and the document entry, and are corrected with it.
 CURRENT_REGISTERS: tuple[Register, ...] = (
-    Register(20059, "current_l1", gain=100, unit="A"),
-    Register(20060, "current_l2", gain=100, unit="A"),
-    Register(20061, "current_l3", gain=100, unit="A"),
+    Register(20059, "current_l1", gain=10, unit="A", note="documented gain 100 reads 10x low; verified against active power"),
+    Register(20060, "current_l2", gain=10, unit="A", note="documented gain 100 reads 10x low; verified against active power"),
+    Register(20061, "current_l3", gain=10, unit="A", note="documented gain 100 reads 10x low; verified against active power"),
 )
 
 POWER_REGISTERS: tuple[Register, ...] = (
@@ -132,26 +142,34 @@ STATUS_REGISTERS: tuple[Register, ...] = (
     Register(20088, "charging_mode"),
     Register(20089, "load_balancing_enabled"),
     Register(20090, "solar_balancing_enabled"),
+    # Millivolts, confirmed across three CP states in one session: 11779 at A,
+    # 8846 at B1 and 5826 at C2 land within 0.25 V of the IEC 61851 nominals
+    # (12/9/6 V), all three low by a consistent ~0.2 V. No other gain fits —
+    # gain 1 would put CP state A at 11.8 kV.
     Register(
         20091,
         "cp_voltage",
         gain=1000,
         unit="V",
-        note="Document gives no unit; ~11780 at CP state A suggests millivolts.",
+        note="Document gives no unit; verified as millivolts against IEC 61851.",
     ),
     Register(20092, "cp_signal_status"),
-    # The document gives gain 1 for both temperatures. On the idle test device
-    # relay 1 read -550 and relay 2 read 248, which are implausible as whole
-    # degrees but sensible as tenths (-55.0 C is an invalid-reading sentinel,
-    # 24.8 C is room temperature). Gain 10 is used and implausible readings are
-    # filtered in the sensor platform. Recheck during a real charging session.
+    # The document gives gain 1 for both temperatures; gain 10 is correct.
+    # Confirmed during a live charge (~1430 W on L1, twelve samples over two
+    # minutes): relay 2 read 251..253, i.e. 25.1..25.3 C, drifting upward with
+    # load as a real sensor does. Gain 1 would mean 251 C on a warm enclosure.
+    #
+    # Relay 1 held -550 across that same charge, unchanged to the digit. It is
+    # an invalid-reading sentinel (-55.0 C), not a measurement: this unit has no
+    # populated sensor on that channel. The sensor platform filters it out, so
+    # the entity stays unavailable rather than charting a constant -55 C.
     Register(
         20093,
         "relay_1_temperature",
         gain=10,
         signed=True,
         unit="°C",
-        note="Gain unconfirmed; document says 1, observation suggests 10.",
+        note="Document says gain 1; verified as 10 during a live charge.",
     ),
     Register(
         20094,
@@ -159,7 +177,7 @@ STATUS_REGISTERS: tuple[Register, ...] = (
         gain=10,
         signed=True,
         unit="°C",
-        note="Gain unconfirmed; document says 1, observation suggests 10.",
+        note="Document says gain 1; verified as 10 during a live charge.",
     ),
     Register(20095, "boost_mode"),
     Register(20096, "led_brightness", unit="%"),

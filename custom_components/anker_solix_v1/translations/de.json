@@ -45,6 +45,9 @@
           "error": "Fehler"
         }
       },
+      "charging_state_text": {
+        "name": "Ladezustand (Klartext)"
+      },
       "cp_signal_status": {
         "name": "CP-Signalstatus",
         "state": {
@@ -86,7 +89,6 @@
         "name": "MQTT-Verbindung",
         "state": {
           "not_connected": "Nicht verbunden",
-          "connecting": "Verbindet",
           "connected": "Verbunden"
         }
       },

@@ -59,13 +59,22 @@ CHARGING_MODE: Final[dict[int, str]] = {
     1: "only_solar",
 }
 
-# Connection status shared by OCPP (20099) and MQTT (20100). The documentation
-# lists "2: Connected" for OCPP but only "1: Connected" for MQTT; both values are
-# mapped so either firmware reading resolves to a name.
-CONNECTION_STATUS: Final[dict[int, str]] = {
+# OCPP connection status (input register 20099): three states, where 1 is the
+# transient one.
+OCPP_CONNECTION_STATUS: Final[dict[int, str]] = {
     0: "not_connected",
     1: "connecting",
     2: "connected",
+}
+
+# MQTT connection status (input register 20100). The documentation gives this
+# register only two states, and 1 means Connected here — not "connecting" as it
+# does for OCPP above. The two registers previously shared one mapping, which
+# reported a live MQTT link (the Anker cloud transport, normally 1) as
+# "Connecting" forever.
+MQTT_CONNECTION_STATUS: Final[dict[int, str]] = {
+    0: "not_connected",
+    1: "connected",
 }
 
 # Set the Number of Charging Phases (holding register 21005).
@@ -93,3 +102,20 @@ MAX_TIMEOUT: Final = 3600
 
 # Statuses in which the charger is actively delivering energy.
 ACTIVE_CHARGING_STATUSES: Final = {2}
+
+# Plain-text charging state for third-party consumers that read Home Assistant
+# over the REST API. An ENUM sensor always serves its raw option there —
+# translations are applied by the frontend only — so a tool like Leapmotor Mate
+# would display "charger_paused" verbatim. This collapses the nine charger
+# states onto the four words such tools expect, in English, as a display string.
+CHARGING_STATE_TEXT: Final[dict[int, str]] = {
+    0: "Idle",
+    1: "Connected",
+    2: "Charging",
+    3: "Connected",
+    4: "Connected",
+    5: "Connected",
+    6: "Connected",
+    7: "Idle",
+    8: "Error",
+}

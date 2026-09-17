@@ -45,6 +45,9 @@
           "error": "Error"
         }
       },
+      "charging_state_text": {
+        "name": "Charging state (plain text)"
+      },
       "cp_signal_status": {
         "name": "CP signal status",
         "state": {
@@ -86,7 +89,6 @@
         "name": "MQTT connection",
         "state": {
           "not_connected": "Not connected",
-          "connecting": "Connecting",
           "connected": "Connected"
         }
       },
